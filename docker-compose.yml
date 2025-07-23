@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  frontend:
+    build: ./tz-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+  backend:
+    build: ./tz-server
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production 

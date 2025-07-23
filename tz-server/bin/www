@@ -1,0 +1,59 @@
+#!/usr/bin/env node
+
+const http = require('http');
+const { app, widgets } = require('../app');
+const WebSocket = require('ws');
+
+const port = process.env.PORT || 3001;
+app.set('port', port);
+
+const server = http.createServer(app);
+
+const wss = new WebSocket.Server({ server });
+
+function updateValues() {
+  const countToUpdate = Math.ceil(widgets.length * 1);
+  const indices = new Set();
+  while (indices.size < countToUpdate) {
+    indices.add(Math.floor(Math.random() * widgets.length));
+  }
+  const patch = [];
+  indices.forEach(i => {
+    const w = widgets[i];
+    if (!w.step) w.step = 1;
+    w.value += w.step;
+    if (w.value >= 100) w.step = -1;
+    if (w.value <= -100) w.step = 1;
+    patch.push({ id: w.id, value: w.value });
+  });
+  return patch;
+}
+
+function broadcastUpdates(patch) {
+  if (!patch || patch.length === 0) return;
+  const message = JSON.stringify({ type: 'patch', patch });
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
+    }
+  });
+}
+
+wss.on('connection', ws => {
+  console.log('[SERVER] Новое WebSocket-подключение');
+
+  ws.send(JSON.stringify({ type: 'full', widgets: widgets.map(w => ({ id: w.id, value: w.value, name: w.name })) }));
+
+  ws.on('close', () => {
+    console.log('[SERVER] WebSocket отключён');
+  });
+});
+
+server.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
+
+setInterval(() => {
+  const patch = updateValues();
+  broadcastUpdates(patch);
+}, 500);

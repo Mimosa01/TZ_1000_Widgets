@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@theme {
+  --color-widget-gray: #ccc;
+  --color-widget-blue: #00f;
+  --color-widget-red: #f00;
+}
